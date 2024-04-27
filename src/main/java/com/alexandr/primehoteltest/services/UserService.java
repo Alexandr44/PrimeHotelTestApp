@@ -4,8 +4,9 @@ import com.alexandr.primehoteltest.mappers.UserMapper;
 import com.alexandr.primehoteltest.models.dtos.UserDto;
 import com.alexandr.primehoteltest.models.dtos.UserResponse;
 import com.alexandr.primehoteltest.models.entities.User;
+import com.alexandr.primehoteltest.models.exceptions.RequestDataNotValidException;
+import com.alexandr.primehoteltest.models.exceptions.UserDataNotValidException;
 import com.alexandr.primehoteltest.repositories.UserRepository;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,103 +25,78 @@ public class UserService {
     }
 
     @Transactional
-    public ResponseEntity<UserResponse> getUserById(UUID userId) {
-        if (userId == null) {
-            return ResponseEntity.badRequest()
-                .body(new UserResponse("User id could not be null"));
-        }
-
+    public UserResponse getUserById(UUID userId) {
+        validateId(userId, true);
         return userRepository.findById(userId)
-            .map(user -> ResponseEntity.ok(userMapper.mapToResponse(user)))
-            .orElseGet(() -> ResponseEntity.badRequest()
-                .body(new UserResponse("User with such id " + userId + " not found"))
-            );
+            .map(userMapper::mapToResponse)
+            .orElseThrow(() -> new UserDataNotValidException("User with such id " + userId + " not found"));
     }
 
     @Transactional
-    public ResponseEntity<UserResponse> createUser(UserDto userDto) {
-        if (userDto == null) {
-            return ResponseEntity.badRequest()
-                .body(new UserResponse("User body could not be null"));
-        }
+    public UserResponse createUser(UserDto userDto) {
+        validateDto(userDto);
+        validateId(userDto.getId(), false);
+        checkLoginExistence(userDto.getLogin());
 
-        if (userDto.getId() != null) {
-            return ResponseEntity.badRequest()
-                .body(new UserResponse("New user shouldn't have an id (" + userDto.getId() + ")"));
-        }
-
-        if (userRepository.existsByLogin(userDto.getLogin())) {
-            return ResponseEntity.badRequest()
-                .body(new UserResponse("User with such login " + userDto.getLogin() + " already exists"));
-        }
-
-        User savedUser;
-        try {
-            savedUser = userRepository.save(
-                userMapper.mapToEntity(userDto)
-            );
-        } catch (Throwable e) {
-            return ResponseEntity.internalServerError()
-                .body(new UserResponse(e.getMessage()));
-        }
-
-        return ResponseEntity.ok(
-            userMapper.mapToResponse(savedUser, "User created")
-        );
+        User savedUser = userRepository.save(userMapper.mapToEntity(userDto));
+        return userMapper.mapToResponse(savedUser, "User created");
     }
 
     @Transactional
-    public ResponseEntity<UserResponse> updateUser(UserDto userDto) {
-        if (userDto == null) {
-            return ResponseEntity.badRequest()
-                .body(new UserResponse("User body could not be null"));
+    public UserResponse updateUser(UserDto userDto) {
+        validateDto(userDto);
+        validateId(userDto.getId(), true);
+        User existentUser = checkIdExistence(userDto.getId());
+        if (!existentUser.getLogin().equals(userDto.getLogin())) {
+            checkLoginNotTaken(userDto.getLogin(), userDto.getId());
         }
 
-        if (userDto.getId() == null) {
-            return ResponseEntity.badRequest()
-                .body(new UserResponse("User should have a not null id"));
-        }
-
-        if (!userRepository.existsById(userDto.getId())) {
-            return ResponseEntity.badRequest()
-                .body(new UserResponse("User with such id " + userDto.getId() + " not found"));
-        }
-
-        if (userRepository.existsByLoginAndIdNot(userDto.getLogin(), userDto.getId())) {
-            return ResponseEntity.badRequest()
-                .body(new UserResponse("Another user with such login " + userDto.getLogin() + " already exists"));
-        }
-
-        User savedUser;
-        try {
-            savedUser = userRepository.save(
-                userMapper.mapToEntity(userDto)
-            );
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                .body(new UserResponse(e.getMessage()));
-        }
-
-        return ResponseEntity.ok(
-            userMapper.mapToResponse(savedUser, "User updated")
-        );
+        User savedUser = userRepository.save(userMapper.mapToEntity(userDto));
+        return userMapper.mapToResponse(savedUser, "User updated");
     }
 
     @Transactional
-    public ResponseEntity<UserResponse> deleteUser(UUID userId) {
-        if (userId == null) {
-            return ResponseEntity.badRequest()
-                .body(new UserResponse("User id could not be null"));
-        }
-
-        Optional<User> deletedUser = userRepository.findById(userId);
-        if (deletedUser.isEmpty()) {
-            return ResponseEntity.badRequest()
-                .body(new UserResponse("User with such id " + userId + " not found"));
-        }
+    public UserResponse deleteUser(UUID userId) {
+        validateId(userId, true);
+        User userToDelete = checkIdExistence(userId);
 
         userRepository.deleteById(userId);
-        return ResponseEntity.ok(userMapper.mapToResponse(deletedUser.get(), "User removed"));
+        return userMapper.mapToResponse(userToDelete, "User removed");
+    }
+
+    private void validateDto(UserDto userDto) {
+        if (userDto == null) {
+            throw new UserDataNotValidException("Request body could not be null");
+        }
+    }
+
+    private void validateId(UUID id, boolean shouldHave) {
+        if (shouldHave && id == null) {
+            throw new UserDataNotValidException("User should have a not null id");
+        } else if (!shouldHave && id != null) {
+            throw new UserDataNotValidException("New user shouldn't have an id (" + id + ")");
+        }
+    }
+
+    private User checkIdExistence(UUID id) {
+        Optional<User> userOpt = userRepository.findById(id);
+        if (userOpt.isPresent()) {
+            return userOpt.get();
+        } else {
+            throw new RequestDataNotValidException("User with such id " + id + " not found");
+        }
+    }
+
+    private void checkLoginExistence(String login) {
+        if (userRepository.existsByLogin(login)) {
+            throw new UserDataNotValidException("User with such login " + login + " already exists");
+        }
+    }
+
+    private void checkLoginNotTaken(String login, UUID userId) {
+        if (userRepository.existsByLoginAndIdNot(login, userId)) {
+            throw new UserDataNotValidException("Another user with such login " + login + " already exists");
+        }
     }
 
 }

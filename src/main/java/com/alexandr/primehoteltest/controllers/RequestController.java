@@ -2,9 +2,7 @@ package com.alexandr.primehoteltest.controllers;
 
 import com.alexandr.primehoteltest.models.dtos.RequestDto;
 import com.alexandr.primehoteltest.models.dtos.RequestResponse;
-import com.alexandr.primehoteltest.models.exceptions.RequestDataNotValidException;
 import com.alexandr.primehoteltest.services.RequestService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
@@ -12,7 +10,6 @@ import reactor.core.scheduler.Schedulers;
 
 import java.util.UUID;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/v1/requests")
 public class RequestController {
@@ -61,17 +58,6 @@ public class RequestController {
             .map(requestService::deleteRequest)
             .map(ResponseEntity::ok)
             .subscribeOn(Schedulers.boundedElastic());
-    }
-
-    @ExceptionHandler(RequestDataNotValidException.class)
-    private ResponseEntity<RequestResponse> handleRequestException(Exception exception) {
-        return ResponseEntity.badRequest().body(new RequestResponse(exception.getMessage()));
-    }
-
-    @ExceptionHandler(Exception.class)
-    private ResponseEntity<RequestResponse> handleException(Exception exception) {
-        log.error("Got exception in RequestController: message: {}, cause {}, stacke trace: {}", exception.getMessage(), exception.getCause(), exception.getStackTrace());
-        return ResponseEntity.internalServerError().body(new RequestResponse("Something went wrong: " + exception.getMessage()));
     }
 
 }

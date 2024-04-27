@@ -26,6 +26,7 @@ public class UserController {
     ) {
         return Mono.fromCallable(() -> userId)
             .map(userService::getUserById)
+            .map(ResponseEntity::ok)
             .subscribeOn(Schedulers.boundedElastic());
     }
 
@@ -35,6 +36,7 @@ public class UserController {
     ) {
         return Mono.fromCallable(() -> userDto)
             .map(userService::createUser)
+            .map(ResponseEntity::ok)
             .subscribeOn(Schedulers.boundedElastic());
     }
 
@@ -44,6 +46,7 @@ public class UserController {
     ) {
         return Mono.fromCallable(() -> userDto)
             .map(userService::updateUser)
+            .map(ResponseEntity::ok)
             .subscribeOn(Schedulers.boundedElastic());
     }
 
@@ -53,6 +56,7 @@ public class UserController {
     ) {
         return Mono.fromCallable(() -> userId)
             .map(userService::deleteUser)
+            .map(ResponseEntity::ok)
             .subscribeOn(Schedulers.boundedElastic());
     }
 
