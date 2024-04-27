@@ -7,7 +7,6 @@ import com.alexandr.primehoteltest.models.entities.Request;
 import com.alexandr.primehoteltest.models.entities.User;
 import com.alexandr.primehoteltest.models.exceptions.RequestDataNotValidException;
 import com.alexandr.primehoteltest.repositories.RequestRepository;
-import com.alexandr.primehoteltest.repositories.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,12 +17,12 @@ import java.util.UUID;
 public class RequestService {
 
     private final RequestRepository requestRepository;
-    private final UserRepository userRepository;
     private final RequestMapper requestMapper;
+    private final UserService userService;
 
-    public RequestService(RequestRepository requestRepository, UserRepository userRepository, RequestMapper requestMapper) {
+    public RequestService(RequestRepository requestRepository, RequestMapper requestMapper, UserService userService) {
         this.requestRepository = requestRepository;
-        this.userRepository = userRepository;
+        this.userService = userService;
         this.requestMapper = requestMapper;
     }
 
@@ -83,11 +82,7 @@ public class RequestService {
         if (userId == null) {
             return null;
         } else {
-            Optional<User> userOpt = userRepository.findById(userId);
-            if (userOpt.isEmpty()) {
-                throw new RequestDataNotValidException("User with such id " + userId + " not found");
-            }
-            return userOpt.get();
+            return userService.checkIdExistence(userId);
         }
     }
 

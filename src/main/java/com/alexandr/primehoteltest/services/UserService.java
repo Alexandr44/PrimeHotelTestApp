@@ -64,6 +64,15 @@ public class UserService {
         return userMapper.mapToResponse(userToDelete, "User removed");
     }
 
+    protected User checkIdExistence(UUID id) {
+        Optional<User> userOpt = userRepository.findById(id);
+        if (userOpt.isPresent()) {
+            return userOpt.get();
+        } else {
+            throw new RequestDataNotValidException("User with such id " + id + " not found");
+        }
+    }
+
     private void validateDto(UserDto userDto) {
         if (userDto == null) {
             throw new UserDataNotValidException("Request body could not be null");
@@ -75,15 +84,6 @@ public class UserService {
             throw new UserDataNotValidException("User should have a not null id");
         } else if (!shouldHave && id != null) {
             throw new UserDataNotValidException("New user shouldn't have an id (" + id + ")");
-        }
-    }
-
-    private User checkIdExistence(UUID id) {
-        Optional<User> userOpt = userRepository.findById(id);
-        if (userOpt.isPresent()) {
-            return userOpt.get();
-        } else {
-            throw new RequestDataNotValidException("User with such id " + id + " not found");
         }
     }
 
