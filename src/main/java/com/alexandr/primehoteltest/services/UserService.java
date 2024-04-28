@@ -4,11 +4,14 @@ import com.alexandr.primehoteltest.mappers.UserMapper;
 import com.alexandr.primehoteltest.models.dtos.UserDto;
 import com.alexandr.primehoteltest.models.dtos.UserResponse;
 import com.alexandr.primehoteltest.models.entities.User;
+import com.alexandr.primehoteltest.models.enums.UserStatus;
 import com.alexandr.primehoteltest.models.exceptions.RequestDataNotValidException;
 import com.alexandr.primehoteltest.models.exceptions.UserDataNotValidException;
 import com.alexandr.primehoteltest.repositories.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -18,10 +21,12 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final RequestRebalanceScheduler requestRebalanceScheduler;
 
-    public UserService(UserRepository userRepository, UserMapper userMapper) {
+    public UserService(UserRepository userRepository, UserMapper userMapper, RequestRebalanceScheduler requestRebalanceScheduler) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
+        this.requestRebalanceScheduler = requestRebalanceScheduler;
     }
 
     @Transactional
@@ -51,6 +56,7 @@ public class UserService {
             checkLoginNotTaken(userDto.getLogin(), userDto.getId());
         }
 
+        checkIfRebalanceRequired(existentUser, userDto);
         User savedUser = userRepository.save(userMapper.mapToEntity(userDto));
         return userMapper.mapToResponse(savedUser, "User updated");
     }
@@ -97,6 +103,23 @@ public class UserService {
         if (userRepository.existsByLoginAndIdNot(login, userId)) {
             throw new UserDataNotValidException("Another user with such login " + login + " already exists");
         }
+    }
+
+    private void checkIfRebalanceRequired(User existentUser, UserDto updatedUserDto) {
+        if (existentUser.getStatus() == UserStatus.ONLINE && updatedUserDto.getStatus() == UserStatus.OFFLINE) {
+            scheduleRequestsRebalance();
+        }
+    }
+
+    private void scheduleRequestsRebalance() {
+        TransactionSynchronizationManager.registerSynchronization(
+            new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    requestRebalanceScheduler.callRequestsRebalance();
+                }
+            }
+        );
     }
 
 }
