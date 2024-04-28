@@ -2,6 +2,7 @@ package com.alexandr.primehoteltest.models.entities;
 
 import com.alexandr.primehoteltest.models.enums.UserStatus;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,6 +11,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity(name = "users")
+@EqualsAndHashCode
 public class User {
 
     @Id
