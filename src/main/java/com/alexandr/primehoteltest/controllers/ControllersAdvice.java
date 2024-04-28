@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 @Slf4j
 @ControllerAdvice
-public class ControllersAdvise {
+public class ControllersAdvice {
 
     @ExceptionHandler(UserDataNotValidException.class)
     private ResponseEntity<RequestResponse> handleUserException(Exception exception) {
