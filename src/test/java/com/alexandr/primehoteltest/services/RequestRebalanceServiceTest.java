@@ -313,7 +313,45 @@ TestEntityManager testEntityManager;
         Assertions.assertEquals(4, requestRepository.findAllByUserId(UUID.fromString(USER_ID_5)).size());
     }
 
+    @Test
+    @Sql(statements = {
+        "INSERT INTO users (status, id, full_name, login) VALUES (0, '" + USER_ID_1 + "', 'Some full name 1', 'A login 1');",
+        "INSERT INTO users (status, id, full_name, login) VALUES (0, '" + USER_ID_2 + "', 'Some full name 2', 'A login 2');",
+        "INSERT INTO users (status, id, full_name, login) VALUES (0, '" + USER_ID_3 + "', 'Some full name 3', 'A login 3');",
+        "INSERT INTO users (status, id, full_name, login) VALUES (0, '" + USER_ID_4 + "', 'Some full name 4', 'A login 4');",
+        "INSERT INTO users (status, id, full_name, login) VALUES (0, '" + USER_ID_5 + "', 'Some full name 5', 'A login 5');",
 
+        "INSERT INTO requests (status, id, user_id, description, name) VALUES (0, '" + REQUEST_ID_1 + "', '" + USER_ID_1 + "', 'Some full description 1', 'A name 1');",
+        "INSERT INTO requests (status, id, user_id, description, name) VALUES (0, '" + REQUEST_ID_2 + "', '" + USER_ID_1 + "', 'Some full description 2', 'A name 2');",
+        "INSERT INTO requests (status, id, user_id, description, name) VALUES (0, '" + REQUEST_ID_3 + "', '" + USER_ID_1 + "', 'Some full description 3', 'A name 3');",
+        "INSERT INTO requests (status, id, user_id, description, name) VALUES (0, '" + REQUEST_ID_4 + "', '" + USER_ID_2 + "', 'Some full description 4', 'A name 4');",
+        "INSERT INTO requests (status, id, user_id, description, name) VALUES (0, '" + REQUEST_ID_5 + "', '" + USER_ID_2 + "', 'Some full description 5', 'A name 5');",
+        "INSERT INTO requests (status, id, user_id, description, name) VALUES (0, '" + REQUEST_ID_6 + "', '" + USER_ID_2 + "', 'Some full description 6', 'A name 6');",
+        "INSERT INTO requests (status, id, user_id, description, name) VALUES (0, '" + REQUEST_ID_7 + "', '" + USER_ID_3 + "', 'Some full description 7', 'A name 7');",
+        "INSERT INTO requests (status, id, user_id, description, name) VALUES (0, '" + REQUEST_ID_8 + "', '" + USER_ID_3 + "', 'Some full description 8', 'A name 8');",
+        "INSERT INTO requests (status, id, user_id, description, name) VALUES (0, '" + REQUEST_ID_9 + "', '" + USER_ID_4 + "', 'Some full description 9', 'A name 9');",
+        "INSERT INTO requests (status, id, user_id, description, name) VALUES (0, '" + REQUEST_ID_10 + "', '" + USER_ID_5 + "', 'Some full description 10', 'A name 10');"
+    })
+    public void rebalanceTest_OneUserOnline() {
+        userRepository.findById(UUID.fromString(USER_ID_1)).get().setStatus(UserStatus.OFFLINE);
+        userRepository.findById(UUID.fromString(USER_ID_2)).get().setStatus(UserStatus.OFFLINE);
+        userRepository.findById(UUID.fromString(USER_ID_3)).get().setStatus(UserStatus.OFFLINE);
+        userRepository.findById(UUID.fromString(USER_ID_4)).get().setStatus(UserStatus.OFFLINE);
+
+        Assertions.assertEquals(3, requestRepository.findAllByUserId(UUID.fromString(USER_ID_1)).size());
+        Assertions.assertEquals(3, requestRepository.findAllByUserId(UUID.fromString(USER_ID_2)).size());
+        Assertions.assertEquals(2, requestRepository.findAllByUserId(UUID.fromString(USER_ID_3)).size());
+        Assertions.assertEquals(1, requestRepository.findAllByUserId(UUID.fromString(USER_ID_4)).size());
+        Assertions.assertEquals(1, requestRepository.findAllByUserId(UUID.fromString(USER_ID_5)).size());
+
+        requestRebalanceService.rebalanceRequests();
+
+        Assertions.assertEquals(0, requestRepository.findAllByUserId(UUID.fromString(USER_ID_1)).size());
+        Assertions.assertEquals(0, requestRepository.findAllByUserId(UUID.fromString(USER_ID_2)).size());
+        Assertions.assertEquals(0, requestRepository.findAllByUserId(UUID.fromString(USER_ID_3)).size());
+        Assertions.assertEquals(0, requestRepository.findAllByUserId(UUID.fromString(USER_ID_4)).size());
+        Assertions.assertEquals(10, requestRepository.findAllByUserId(UUID.fromString(USER_ID_5)).size());
+    }
 
 
 }

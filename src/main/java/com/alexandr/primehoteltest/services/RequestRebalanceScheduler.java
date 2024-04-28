@@ -26,7 +26,7 @@ public class RequestRebalanceScheduler {
 
     public void callRequestsRebalance() {
         log.info("Scheduling rebalance of request");
-        if (scheduledFuture != null) {
+        if (scheduledFuture != null && !scheduledFuture.isDone()) {
             log.info("Cancelling previous scheduled rebalance");
             scheduledFuture.cancel(true);
         }
